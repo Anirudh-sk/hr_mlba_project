@@ -1,828 +1,965 @@
-# Comprehensive Instructions for Air Quality Health Impact Prediction System
+# Air Quality & Health Prediction: Predictive Modeling Pipeline
 
 ## Project Overview
-Build an end-to-end machine learning system to predict health impacts (mortality from pollution-related diseases) based on air quality data, comparing India with global trends, and supporting SDG goals 3, 11, and 13.
+Build 4 predictive models to forecast air quality and estimate health impacts from pollution data. Each model will have its own prepared dataset, comparison of multiple algorithms, and the best model saved as a pickle file.
 
 ---
 
-## PHASE 1: EXPLORATORY DATA ANALYSIS (EDA)
+## MODELS TO BUILD
 
-### Step 1.1: Initial Data Loading and Inspection
-```
-Load all three datasets:
-- cause_of_deaths.csv
-- city_day.csv  
-- global_air_pollution_data.csv
+### Model 1: City-Level AQI Forecasting (7-30 days ahead)
+**Purpose**: Early warning system for vulnerable populations  
+**Output**: Predicted AQI values for next 7-30 days per city
 
-For each dataset:
-1. Display first 10 rows
-2. Show dataset shape (rows, columns)
-3. Display all column names with data types
-4. Show memory usage
-5. Display summary statistics (describe())
-6. Check for duplicate rows
-```
+### Model 2: Severe Day Prediction (AQI ≥300)
+**Purpose**: Public health alerts, school closures, outdoor activity warnings  
+**Output**: Binary classification - will tomorrow be a severe pollution day?
 
-### Step 1.2: Missing Data Analysis
-```
-For each dataset:
-1. Calculate percentage of missing values per column
-2. Create a heatmap visualizing missing data patterns
-3. Identify columns with >50% missing data
-4. Document which columns need imputation vs deletion
-5. For city_day.csv specifically:
-   - Analyze missing AQI values by city
-   - Analyze missing pollutant values (PM2.5, PM10, NO2, etc.)
-   - Check if missing data has temporal patterns
-```
+### Model 3: State-Level Disease Burden Estimation
+**Purpose**: Estimate respiratory/cardiovascular disease rates for Indian states using pollution proxies  
+**Output**: Predicted disease death rates per 100k population at state level
 
-### Step 1.3: Univariate Analysis
-```
-For cause_of_deaths.csv:
-1. Plot distribution of deaths for each disease category
-2. Analyze India-specific data separately:
-   - Time series plots (1990-2019) for:
-     * Cardiovascular Diseases
-     * Lower Respiratory Infections
-     * Chronic Respiratory Diseases
-     * Neoplasms
-3. Identify top 10 countries by total deaths
-4. Calculate year-over-year growth rates for India
-
-For city_day.csv:
-1. Distribution plots for:
-   - AQI values
-   - PM2.5, PM10
-   - NO, NO2, NOx
-   - SO2, CO, O3
-2. Create boxplots showing pollutant distributions by:
-   - City
-   - Year
-   - AQI_Bucket category
-3. Identify outliers in each pollutant
-4. Plot AQI trends over time (2015-2020) for each city
-
-For global_air_pollution_data.csv:
-1. Distribution of AQI values globally
-2. Count of cities by AQI category
-3. Distribution by country
-4. Compare India's cities vs global cities
-```
-
-### Step 1.4: Bivariate and Multivariate Analysis
-```
-For city_day.csv:
-1. Correlation matrix for all pollutants
-2. Heatmap showing correlations
-3. Scatter plots:
-   - PM2.5 vs AQI
-   - PM10 vs AQI
-   - NO2 vs AQI
-   - PM2.5 vs PM10
-4. Pairplot for top 5 pollutants
-5. Check multicollinearity (VIF scores)
-
-For cause_of_deaths.csv:
-1. Correlation between different disease categories
-2. Time series correlation analysis
-3. For India specifically:
-   - Correlation between respiratory diseases and cardiovascular diseases
-   - Trend analysis for pollution-related diseases
-
-Cross-dataset analysis:
-1. Merge city_day with India deaths by Year
-2. Calculate correlation between:
-   - National average AQI vs total respiratory deaths
-   - National average PM2.5 vs cardiovascular deaths
-   - Pollutant levels vs disease-specific mortality
-3. TODO: Revisit with time-aligned/lagged analysis (India 2015-2020) because AQI trends down while deaths rise; check both AQI and PM2.5/PM10 relationships with proper temporal handling
-```
-
-### Step 1.5: Temporal Analysis
-```
-1. Year-over-year trends:
-   - AQI trends for each Indian city (2015-2019)
-   - Death trends for pollution-related diseases (2015-2019)
-   - Seasonal patterns in AQI (monthly aggregations)
-
-2. Create time series decomposition plots showing:
-   - Trend component
-   - Seasonal component
-   - Residual component
-
-3. Analyze if AQI improvement/degradation correlates with death rate changes
-4. TODO: Factor in seasonal AQI spikes (Nov–Jan) vs monsoon lows (Jul–Sep) and high “Very Poor” day cities (Ahmedabad/Delhi/Patna/Lucknow/Gurugram) when modeling temporal effects
-```
-
-### Step 1.6: Geographical Analysis
-```
-1. Create city-wise summary statistics:
-   - Mean AQI per city
-   - Days exceeding "Very Poor" AQI
-   - Most problematic pollutant per city
-
-2. Compare Indian cities from city_day.csv with Indian cities in global_air_pollution_data.csv:
-   - Which cities appear in both?
-   - How do AQI values compare?
-
-3. Rank cities by pollution severity
-4. TODO: For overlapping cities, reconcile AQI gaps between datasets (e.g., Delhi/Patna higher in global data); align definitions before downstream comparisons
-```
+### Model 4: Multi-Pollutant Synergy Model
+**Purpose**: Predict disease risk from pollutant combinations (non-linear health impacts)  
+**Output**: Disease risk scores based on pollutant interactions
 
 ---
 
-## PHASE 2: COMPARATIVE ANALYSIS (India vs Global)
+## PHASE 1: DATA PREPARATION
 
-### Step 2.1: Data Preparation for Comparison
-```
-1. Extract India data from global_air_pollution_data.csv
-2. Calculate global statistics:
-   - Global mean AQI
-   - Global median AQI
-   - Distribution by AQI category worldwide
-   - Top 20 most polluted cities globally
+### Step 1.1: Prepare Dataset for Model 1 (AQI Forecasting)
+```python
+"""
+Create model1_aqi_forecast.csv
 
-3. Calculate India-specific statistics from both datasets:
-   - Mean AQI across all Indian cities
-   - Median AQI
-   - Percentage of cities in each AQI bucket
-   - Top 20 most polluted Indian cities
-```
-
-### Step 2.2: Statistical Comparison
-```
-1. Compare India vs Global:
-   - Mean AQI: India vs World average
-   - Statistical significance testing (t-test)
-   - Effect size calculation (Cohen's d)
-
-2. Pollutant-specific comparison:
-   - PM2.5: India average vs Global average
-   - PM10: India average vs Global average
-   - NO2: India average vs Global average
-   - Ozone: India average vs Global average
-
-3. Create comparison visualizations:
-   - Side-by-side boxplots (India vs Rest of World)
-   - Violin plots showing distribution differences
-   - Bar charts for categorical AQI buckets
-```
-
-### Step 2.3: Mortality Analysis (India vs Global Context)
-```
-1. Calculate India's mortality rates for pollution-related diseases:
-   - Deaths per 100,000 population (need to find/estimate India population 2015-2019)
-   - Compare with other major countries if available
-
-2. Calculate pollution burden metrics:
-   - Estimated attributable deaths to air pollution
-   - Disability-Adjusted Life Years (DALYs) if possible
-
-3. Trend comparison:
-   - Is India's AQI improving or worsening compared to global trends?
-   - Are India's pollution-related deaths increasing faster than global average?
-4. TODO: Requires population data per country/year to compute per-100k rates and burden metrics; supply or load population series before proceeding
-```
-
-### Step 2.4: Detailed Insights Generation
-```
-Create comprehensive report addressing:
-1. How much worse is India compared to global average (percentage difference)
-2. Which pollutants are India's biggest challenges
-3. Which cities need most urgent intervention
-4. Temporal trends: Is situation improving or deteriorating?
-5. Best and worst performing Indian cities
-6. Comparison with similarly developed countries
-```
-
----
-
-## PHASE 3: FEATURE ENGINEERING AND DATASET PREPARATION
-
-### Step 3.1: Create Master Dataset
-```
-Objective: Build a unified dataset for ML modeling
+Input files: city_day.csv
 
 Steps:
-1. Filter cause_of_deaths.csv:
-   - Keep only India data
-   - Keep only years 2015-2019
-   - Select columns:
-     * Year
+1. Load city_day.csv
+2. Sort by City and Date
+3. For each city:
+   - Create lagged features:
+     * AQI_lag_1 to AQI_lag_7 (previous 7 days)
+     * PM2.5_lag_1 to PM2.5_lag_7
+     * PM10_lag_1 to PM10_lag_7
+     * NO2_lag_1 to NO2_lag_7
+     * SO2_lag_1 to SO2_lag_7
+   - Create rolling window features:
+     * AQI_rolling_mean_7 (7-day moving average)
+     * AQI_rolling_std_7 (7-day std dev)
+     * AQI_rolling_max_7 (7-day max)
+     * AQI_rolling_min_7 (7-day min)
+   - Create temporal features:
+     * day_of_week (0-6)
+     * month (1-12)
+     * season (1=winter, 2=spring, 3=summer, 4=monsoon)
+     * is_winter (1 if Nov-Jan, else 0)
+   - Create exponential moving average:
+     * AQI_ema_7 (alpha=0.3)
+4. Target variable:
+   - AQI_target = AQI value 7 days ahead
+5. Remove rows with NaN (first 7 days per city won't have lags)
+6. Final columns:
+   - City, Date, all lag features, rolling features, temporal features
+   - Target: AQI_target
+7. Save as model1_aqi_forecast.csv
+"""
+```
+
+### Step 1.2: Prepare Dataset for Model 2 (Severe Day Prediction)
+```python
+"""
+Create model2_severe_day.csv
+
+Input files: city_day.csv
+
+Steps:
+1. Load city_day.csv
+2. Sort by City and Date
+3. For each city:
+   - Create lagged features (1-3 days):
+     * AQI_lag_1, AQI_lag_2, AQI_lag_3
+     * PM2.5_lag_1, PM2.5_lag_2, PM2.5_lag_3
+     * PM10_lag_1, PM10_lag_2, PM10_lag_3
+     * All pollutants: NO2, SO2, CO, O3, NO, NOx
+   - Create 3-day rolling statistics:
+     * rolling_mean_3, rolling_max_3, rolling_std_3 for AQI and major pollutants
+   - Create rate of change features:
+     * AQI_change_1d = AQI_today - AQI_lag_1
+     * AQI_change_3d = AQI_today - AQI_lag_3
+     * PM2.5_change_1d, PM10_change_1d
+   - Temporal features:
+     * day_of_week, month, season, is_winter
+   - Create AQI category features:
+     * was_severe_yesterday (1 if AQI_lag_1 >= 300)
+     * days_since_last_severe (count)
+4. Target variable:
+   - is_severe_tomorrow = 1 if AQI >= 300, else 0 (shift by -1 day)
+5. Handle class imbalance:
+   - Calculate class distribution
+   - Note severe_day_percentage for reference
+6. Remove rows with NaN
+7. Final columns:
+   - City, Date, all features
+   - Target: is_severe_tomorrow (binary)
+8. Save as model2_severe_day.csv
+"""
+```
+
+### Step 1.3: Prepare Dataset for Model 3 (Disease Burden Estimation)
+```python
+"""
+Create model3_disease_burden.csv
+
+Input files: 
+- city_day.csv
+- global_air_pollution_data.csv  
+- cause_of_deaths.csv
+
+Steps:
+1. Aggregate city_day.csv to state-year level:
+   - Map cities to states (create city-to-state mapping)
+   - Group by State, Year (extract year from Date)
+   - Calculate mean values for:
+     * PM2.5, PM10, NO2, SO2, CO, O3, NOx
+   - Calculate AQI statistics:
+     * mean_AQI, max_AQI, std_AQI
+     * pct_severe_days (% days with AQI >= 300)
+     * pct_very_poor_days (% days with AQI >= 200)
+   - Time period: 2015-2019
+
+2. Extract India data from global_air_pollution_data.csv:
+   - Filter for Country = 'India'
+   - Aggregate to state level if city-level
+   - Keep: State, PM2.5_value, NO2_value, Ozone_value, AQI_value
+   
+3. Extract India disease data from cause_of_deaths.csv:
+   - Filter for Country = 'India', Year = 2015-2019
+   - Calculate per 100k rates (need India population by year):
+     * Cardiovascular_per_100k
+     * Lower_Respiratory_per_100k
+     * Chronic_Respiratory_per_100k
+     * All_Respiratory_per_100k = Lower + Chronic
+   - Create state-level estimates using city pollution as proxy:
+     * Use correlation: state_deaths = national_deaths × (state_AQI/national_AQI)^1.5
+
+4. Merge all sources:
+   - Left join city_day aggregated with global_air_pollution 
+   - Join with estimated state disease rates
+   - Handle missing values with median imputation
+
+5. Create interaction features:
+   - PM2.5 × SO2
+   - PM2.5 × NO2  
+   - AQI × pct_severe_days
+
+6. Target variables:
+   - Cardiovascular_per_100k
+   - Respiratory_per_100k (combined)
+   - All_Key_Diseases_per_100k
+
+7. Save as model3_disease_burden.csv
+
+Note: This model uses 2019 global correlations for training, applies to India states
+Columns: State, Year, all pollutant features, interaction terms, targets
+"""
+```
+
+### Step 1.4: Prepare Dataset for Model 4 (Multi-Pollutant Synergy)
+```python
+"""
+Create model4_pollutant_synergy.csv
+
+Input files:
+- city_day.csv
+- global_air_pollution_data.csv
+- cause_of_deaths.csv
+
+Steps:
+1. Load global_air_pollution_data.csv:
+   - Filter for Year = 2019 (only year with aligned pollution + disease data)
+   - Keep all countries
+   - Normalize pollutant values: PM2.5, NO2, Ozone, CO
+
+2. Load cause_of_deaths.csv:
+   - Filter for Year = 2019
+   - Keep disease columns:
      * Cardiovascular Diseases
-     * Lower Respiratory Infections
+     * Lower Respiratory Infections  
      * Chronic Respiratory Diseases
      * Neoplasms
-
-2. Aggregate city_day.csv to yearly national level:
-   - Group by Year
-   - Calculate mean for each pollutant:
-     * PM2.5, PM10, NO, NO2, NOx, NH3, CO, SO2, O3, Benzene, Toluene, Xylene
-   - Calculate AQI statistics:
-     * Mean AQI
-     * Max AQI
-     * Min AQI
-     * Std deviation of AQI
-     * Percentage of days in each AQI_Bucket
-   - Count missing values per pollutant
-
-3. Merge datasets on Year to create master_dataset.csv
-```
-
-### Step 3.2: Feature Engineering
-```
-Create new features:
-
-1. Pollution Composite Scores:
-   - Particulate_Matter_Index = weighted average of PM2.5 and PM10
-   - Gaseous_Pollutant_Index = weighted average of NO2, SO2, CO
-   - Overall_Pollution_Score = combination of all pollutants
-
-2. Temporal features:
-   - Year as continuous variable
-   - Years_since_baseline (2015 = 0)
-
-3. Risk multipliers:
-   - For each city in city_day.csv, calculate:
-     * City_AQI / National_Average_AQI per year
-     * City_PM2.5 / National_Average_PM2.5 per year
-
-4. Lagged features (if using time series approach):
-   - Previous year's AQI
-   - Previous year's death counts
-   - 2-year moving average of pollutants
-
-5. Target variable creation:
-   - Total_Pollution_Deaths = sum of (Cardiovascular + Respiratory + relevant Neoplasms)
-   - Also create separate targets for each disease category
-   - Create mortality rate per 100,000 (if population data available)
-
-6. Create city-level prediction dataset:
-   - For each city-year combination in city_day.csv
-   - Calculate risk score = National_Deaths × (City_AQI / National_AQI)^β
-   - This will be used for city-level predictions
-```
-
-### Step 3.3: Data Preprocessing
-```
-1. Handle missing values:
-   - For pollutants: Use median imputation within same year
-   - For AQI: Use forward fill then backward fill
-   - Document all imputation decisions
-
-2. Handle outliers:
-   - Identify outliers using IQR method
-   - Decide: keep, cap, or remove (document reasoning)
-   - Create outlier flags as binary features
-
-3. Categorical encoding:
-   - AQI_Bucket: Use ordinal encoding (Good=0, Moderate=1, Poor=2, Very Poor=3, Severe=4)
-   - City: Use one-hot encoding or leave-one-out encoding
-
-4. Feature scaling:
-   - Create scaled versions using:
-     * StandardScaler (for linear models, neural networks)
-     * MinMaxScaler (for tree-based models comparison)
-   - Keep both scaled and unscaled versions
-
-5. Feature selection:
-   - Calculate feature importance using:
-     * Correlation with target
-     * Mutual information scores
-     * Random Forest feature importance
-   - Remove highly correlated features (correlation > 0.95)
-   - Remove low-variance features
-```
-
-### Step 3.4: Train-Test Split Strategy
-```
-IMPORTANT: Use temporal split, not random split
-
-1. Training data: 2015-2018 (4 years)
-2. Test data: 2019 (1 year)
-
-Rationale: Predicting future based on past (realistic scenario)
-
-For city-level predictions:
-1. Use same temporal split
-2. Additionally create validation set from 2018 data
-3. Split: Train (2015-2017), Validation (2018), Test (2019)
-
-Save datasets:
-- X_train, X_test, y_train, y_test
-- X_train_scaled, X_test_scaled
-- city_X_train, city_X_test, city_y_train, city_y_test
-```
-
----
-
-## PHASE 4: MACHINE LEARNING MODEL DEVELOPMENT
-
-### Step 4.1: Baseline Models
-```
-Build simple baselines first:
-1. Mean baseline: Predict mean of training deaths
-2. Linear trend: Simple linear regression with Year only
-3. Last-year baseline: Predict same as previous year
-
-Calculate baseline metrics:
-- Mean Absolute Error (MAE)
-- Root Mean Squared Error (RMSE)
-- R² Score
-- Mean Absolute Percentage Error (MAPE)
-```
-
-### Step 4.2: Regression Models
-```
-Train the following models on national-level data:
-
-1. Linear Regression
-   - Standard OLS
-   - Ridge Regression (L2 regularization) - try alphas: [0.1, 1, 10, 100]
-   - Lasso Regression (L1 regularization) - try alphas: [0.1, 1, 10, 100]
-   - ElasticNet - try alpha and l1_ratio combinations
-
-2. Tree-based Models
-   - Decision Tree Regressor
-     * Try max_depth: [3, 5, 7, 10, None]
-     * Try min_samples_split: [2, 5, 10]
-   - Random Forest Regressor
-     * n_estimators: [50, 100, 200, 500]
-     * max_depth: [5, 10, 15, None]
-     * Use GridSearchCV or RandomizedSearchCV
-   - Gradient Boosting Regressor
-     * n_estimators: [100, 200, 500]
-     * learning_rate: [0.01, 0.05, 0.1]
-     * max_depth: [3, 5, 7]
-   - XGBoost Regressor
-     * Similar hyperparameter tuning as GBM
-   - LightGBM Regressor
-     * Optimize num_leaves, learning_rate, n_estimators
-
-3. Support Vector Regression (SVR)
-   - Try kernels: linear, rbf, poly
-   - Optimize C and epsilon parameters
-
-4. K-Nearest Neighbors Regressor
-   - Try n_neighbors: [3, 5, 7, 10, 15]
-   - Try different distance metrics
-
-For each model:
-- Use cross-validation (TimeSeriesSplit with 3-5 splits)
-- Record training time
-- Calculate metrics on both train and test sets
-- Save predictions
-- Plot actual vs predicted
-- Analyze residuals
-```
-
-### Step 4.3: Model Evaluation and Comparison
-```
-Create comprehensive comparison:
-
-1. Metrics table:
-   | Model | Train RMSE | Test RMSE | Train R² | Test R² | MAE | MAPE | Training Time |
+   - Calculate per 100k rates using country population
    
-2. Visualizations:
-   - Bar chart comparing test R² scores
-   - Bar chart comparing test RMSE
-   - Scatter plots: Actual vs Predicted for each model
-   - Residual plots for top 3 models
+3. Merge on Country, Year=2019
 
-3. Statistical tests:
-   - Paired t-test comparing model predictions
-   - Friedman test for overall difference
+4. Create pollutant interaction features:
+   - PM2.5 × NO2
+   - PM2.5 × Ozone
+   - PM2.5 × SO2
+   - NO2 × SO2
+   - NO2 × Ozone
+   - Three-way: PM2.5 × NO2 × SO2
+   
+5. Create polynomial features:
+   - PM2.5_squared, PM2.5_cubed
+   - NO2_squared, NO2_cubed
+   - AQI_squared
 
-4. Feature importance analysis:
-   - For tree-based models: plot feature importances
-   - For linear models: plot coefficients
-   - SHAP values for best model
-```
+6. Create ratio features:
+   - PM2.5 / NO2
+   - PM10 / PM2.5
+   - NOx / NO2
 
-### Step 4.4: Ensemble Methods
-```
-Create ensemble models:
+7. Create seasonal proxies (if lat/lon available):
+   - Estimate based on country location
+   - Otherwise use country-level climate zone
 
-1. Voting Regressor:
-   - Combine top 3-5 performing models
-   - Try both averaging and weighted voting
-   - Optimize weights using validation set
+8. For India, append city_day aggregated to yearly (2015-2019):
+   - Aggregate to Year level
+   - Calculate same interaction features
+   - Create pseudo-state level by city groupings
+   - Estimate deaths using correlation transfer from global model
 
-2. Stacking:
-   - Base models: Top 5 individual models
-   - Meta-learner: Try Linear Regression, Ridge, or Gradient Boosting
-   - Use cross-validation predictions for meta-features
+9. Target variables:
+   - Cardiovascular_deaths_per_100k
+   - Respiratory_deaths_per_100k
+   - Combined_disease_risk_score (weighted composite)
 
-3. Blending:
-   - Train models on train set
-   - Get predictions on validation set
-   - Train meta-model on validation predictions
-   - Test on test set
+10. Final dataset:
+    - Global 2019 data (primary training set)
+    - India 2015-2019 (validation/application set)
+    - Mark with is_india flag
 
-4. Custom ensemble:
-   - Time-weighted ensemble (recent years get more weight)
-   - Pollutant-specific ensemble (different models for different pollutants)
+11. Save as model4_pollutant_synergy.csv
 
-Evaluate each ensemble:
-- Compare against best individual model
-- Check if ensemble reduces variance
-- Analyze bias-variance tradeoff
-```
-
-### Step 4.5: Advanced Techniques
-```
-1. AutoML (optional):
-   - Use TPOT or Auto-sklearn
-   - Let it search for best pipeline
-   - Compare with manual models
-
-2. Bayesian Optimization:
-   - For top 2-3 models
-   - Optimize hyperparameters more efficiently
-   - Use Optuna or Hyperopt
-
-3. Feature engineering v2:
-   - Based on model insights
-   - Create polynomial features for important variables
-   - Create interaction terms
-   - Retrain top models
-
-4. Time series specific models (if treating as time series):
-   - ARIMA for each pollutant
-   - SARIMAX with exogenous variables
-   - Prophet (Facebook)
-   - Compare with ML models
+Columns: Country/State, Year, all base pollutants, all interaction features, targets
+"""
 ```
 
 ---
 
-## PHASE 5: DEEP LEARNING IMPLEMENTATION
+## PHASE 2: MODEL BUILDING
 
-### Step 5.1: Data Preparation for Neural Networks
-```
-1. Ensure proper scaling (StandardScaler already applied)
-2. Reshape data if needed for specific architectures
-3. Create additional features:
-   - Embeddings for categorical variables (City)
-   - Sequence data if using LSTM/GRU
-
-4. Split data:
-   - Train: 2015-2017
-   - Validation: 2018
-   - Test: 2019
-```
-
-### Step 5.2: Feedforward Neural Network (MLP)
-```
-Build from scratch using TensorFlow/Keras:
-
-Architecture 1 - Simple:
-- Input layer (number of features)
-- Hidden layer 1: 64 neurons, ReLU activation, Dropout(0.2)
-- Hidden layer 2: 32 neurons, ReLU activation, Dropout(0.2)
-- Output layer: 1 neuron (regression)
-
-Architecture 2 - Deeper:
-- Input layer
-- Hidden layer 1: 128 neurons, ReLU, BatchNorm, Dropout(0.3)
-- Hidden layer 2: 64 neurons, ReLU, BatchNorm, Dropout(0.3)
-- Hidden layer 3: 32 neurons, ReLU, BatchNorm, Dropout(0.2)
-- Hidden layer 4: 16 neurons, ReLU, Dropout(0.2)
-- Output layer: 1 neuron
-
-Architecture 3 - Wide:
-- Input layer
-- Hidden layer 1: 256 neurons, ReLU, Dropout(0.3)
-- Hidden layer 2: 128 neurons, ReLU, Dropout(0.2)
-- Output layer: 1 neuron
-
-Training configuration:
-- Loss function: MSE (Mean Squared Error)
-- Optimizer: Adam with learning_rate=0.001
-- Metrics: MAE, MAPE
-- Epochs: 100-500 with early stopping
-- Batch size: Try [8, 16, 32]
-- Early stopping: patience=20, monitor='val_loss'
-- Model checkpoint: save best model
-
-Experiments to run:
-1. Different activation functions (ReLU, LeakyReLU, ELU, SELU)
-2. Different optimizers (Adam, SGD with momentum, RMSprop, AdamW)
-3. Different learning rates: [0.0001, 0.001, 0.01]
-4. Different dropout rates: [0.1, 0.2, 0.3, 0.5]
-5. Batch normalization vs Layer normalization vs no normalization
-6. L1/L2 regularization
-```
-
-### Step 5.3: Recurrent Neural Networks (Time Series)
-```
-Since we have temporal data, try RNN architectures:
-
-Architecture 1 - LSTM:
-- Reshape input to (samples, timesteps, features)
-- LSTM layer 1: 50 units, return_sequences=True
-- Dropout(0.2)
-- LSTM layer 2: 50 units
-- Dropout(0.2)
-- Dense layer: 25 units, ReLU
-- Output layer: 1 unit
-
-Architecture 2 - GRU:
-- GRU layer 1: 64 units, return_sequences=True
-- Dropout(0.2)
-- GRU layer 2: 32 units
-- Dense layer: 16 units, ReLU
-- Output layer: 1 unit
-
-Architecture 3 - Bidirectional LSTM:
-- Bidirectional LSTM: 50 units, return_sequences=True
-- Dropout(0.3)
-- Bidirectional LSTM: 50 units
-- Dense layer: 25 units
-- Output layer: 1 unit
-
-Configure similarly to MLP above
-```
-
-### Step 5.4: Advanced Deep Learning Architectures
-```
-1. Residual Networks (ResNet-style):
-   - Add skip connections
-   - Deeper networks without vanishing gradients
-
-2. Attention Mechanism:
-   - Add attention layer to focus on important features/timesteps
-   - Multi-head attention
-
-3. Encoder-Decoder architecture:
-   - Encode input features
-   - Decode to prediction
-   - Useful for complex relationships
-
-4. Hybrid models:
-   - Combine CNN (for feature extraction) + LSTM (for temporal)
-   - Combine MLP for static features + LSTM for temporal
-```
-
-### Step 5.5: Neural Network Training Best Practices
-```
-1. Learning rate scheduling:
-   - ReduceLROnPlateau
-   - Cosine annealing
-   - Warm-up and decay
-
-2. Data augmentation (if applicable):
-   - Add small noise to inputs
-   - Bootstrap sampling
-
-3. Regularization techniques:
-   - L1/L2 weight regularization
-   - Dropout variations (SpatialDropout, AlphaDropout)
-   - Batch normalization
-
-4. Training monitoring:
-   - Plot training/validation loss curves
-   - Plot training/validation metric curves
-   - Check for overfitting/underfitting
-   - Use TensorBoard for visualization
-
-5. Hyperparameter tuning:
-   - Use Keras Tuner or Optuna
-   - Search space:
-     * Number of layers: [2, 3, 4, 5]
-     * Units per layer: [16, 32, 64, 128, 256]
-     * Dropout rates: [0.1, 0.2, 0.3, 0.4]
-     * Learning rates: [0.0001, 0.0005, 0.001, 0.005]
-```
-
-### Step 5.6: Neural Network Evaluation
-```
-For each neural network:
-1. Calculate all metrics (RMSE, MAE, R², MAPE)
-2. Plot actual vs predicted
-3. Plot residuals
-4. Analyze prediction errors by:
-   - Year
-   - Pollutant level
-   - Disease type
-
-5. Compare with traditional ML models
-6. Ensemble neural networks:
-   - Average predictions from multiple architectures
-   - Weighted ensemble based on validation performance
-
-7. Interpretation:
-   - Feature importance using permutation importance
-   - SHAP values for deep learning
-   - Integrated gradients
-```
-
----
-
-## PHASE 6: FINAL MODEL SELECTION AND CITY-LEVEL PREDICTIONS
-
-### Step 6.1: Comprehensive Model Comparison
-```
-Create final comparison table including:
-- All regression models
-- All ensemble models  
-- All neural network architectures
-
-Metrics to compare:
-- Test RMSE
-- Test MAE
-- Test R²
-- Test MAPE
-- Cross-validation score (mean ± std)
-- Training time
-- Inference time
-- Model complexity (number of parameters)
-- Interpretability score (subjective: 1-5)
-
-Select top 3 models based on:
-1. Best test performance
-2. Lowest overfitting (train-test gap)
-3. Good balance of performance and interpretability
-```
-
-### Step 6.2: City-Level Risk Prediction
-```
-Using the best model:
-
-1. National-level predictions (already done)
-
-2. City-level risk scoring:
-   For each city in city_day.csv:
-   - Calculate city's average AQI and pollutants (2015-2019)
-   - Calculate risk multiplier = (City_AQI / National_Average_AQI)
-   - Estimate city deaths = National_Deaths × Risk_Multiplier^β
-     Where β is optimized parameter (default: 1.0-1.5)
-
-3. Create city ranking:
-   - Rank cities by estimated pollution-attributable deaths
-   - Rank by deaths per capita (if population available)
-   - Identify highest risk cities
-
-4. Scenario analysis:
-   - "What if City X reduces PM2.5 by 30%?"
-   - Estimate lives saved
-   - Calculate for multiple scenarios
-```
-
-### Step 6.3: Model Deployment Preparation
-```
-1. Save best model:
-   - Pickle file for scikit-learn models
-   - SavedModel format for neural networks
-   - Save preprocessing pipeline (scaler, encoder)
-
-2. Create prediction function:
-   def predict_health_impact(pollutant_data, city=None):
-       # Preprocess input
-       # Make prediction
-       # Return result with confidence interval
-
-3. Model documentation:
-   - Model card: architecture, performance, limitations
-   - Feature requirements
-   - Expected input format
-   - Output interpretation guide
-
-4. Create simple API or notebook interface:
-   - Input: City name + pollutant levels
-   - Output: Predicted health impact + recommendations
-```
-
----
-
-## PHASE 7: VISUALIZATION AND REPORTING
-
-### Step 7.1: Create Comprehensive Dashboards
-```
-1. EDA Dashboard:
-   - Summary statistics
-   - Distribution plots
-   - Correlation matrices
-   - Time series trends
-
-2. Model Performance Dashboard:
-   - Model comparison charts
-   - Actual vs Predicted plots
-   - Residual analysis
-   - Feature importance
-
-3. India vs Global Dashboard:
-   - Comparative statistics
-   - Map visualizations (if possible)
-   - Trend comparisons
-
-4. City Risk Dashboard:
-   - City rankings
-   - Risk scores by city
-   - Scenario analysis results
-   - Actionable recommendations
-```
-
-### Step 7.2: Final Report Generation
-```
-Create comprehensive report including:
-
-1. Executive Summary
-   - Key findings
-   - Best model performance
-   - Top insights
-
-2. Data Analysis Section
-   - EDA findings
-   - India vs global comparison
-   - Data quality assessment
-
-3. Methodology
-   - Feature engineering approach
-   - Models tested
-   - Evaluation metrics
-
-4. Results
-   - Model performance comparison
-   - Best model details
-   - City-level predictions
-
-5. Insights and Recommendations
-   - Cities needing urgent intervention
-   - Estimated lives that could be saved
-   - Policy recommendations
-   - SDG alignment
-
-6. Limitations and Future Work
-   - Data limitations
-   - Model limitations
-   - Suggestions for improvement
-
-7. Appendix
-   - Detailed model configurations
-   - Complete results tables
-   - Code snippets
-```
-
----
-
-## DELIVERABLES CHECKLIST
-
-```
-[ ] Complete EDA notebook with all visualizations
-[ ] India vs Global comparison report
-[ ] Clean master dataset (master_dataset.csv)
-[ ] City-level dataset for predictions
-[ ] Trained models (saved files):
-    [ ] Best regression model
-    [ ] Best ensemble model
-    [ ] Best neural network
-[ ] Model performance comparison table
-[ ] City risk ranking file
-[ ] Prediction pipeline (functions/API)
-[ ] Comprehensive final report
-[ ] Visualization dashboard/notebook
-[ ] README with instructions
-[ ] Requirements.txt with all dependencies
-```
-
----
-
-## TECHNICAL REQUIREMENTS
+### Step 2.1: Build Model 1 - AQI Forecasting
 
 ```python
-# Required libraries:
-pandas >= 1.3.0
-numpy >= 1.21.0
-matplotlib >= 3.4.0
-seaborn >= 0.11.0
-scikit-learn >= 1.0.0
-xgboost >= 1.5.0
-lightgbm >= 3.3.0
-tensorflow >= 2.8.0  # or pytorch >= 1.10.0
-keras-tuner >= 1.1.0
-shap >= 0.40.0
-optuna >= 2.10.0  # for hyperparameter optimization
-plotly >= 5.0.0  # for interactive plots
-scipy >= 1.7.0
-statsmodels >= 0.13.0
+"""
+File: model1_aqi_forecast.py
+
+Steps:
+
+1. Load model1_aqi_forecast.csv
+
+2. Train-test split:
+   - Use last 20% of data (chronologically) as test set
+   - Use first 80% as training set
+   - DO NOT shuffle (time series data)
+
+3. Feature selection:
+   - X = all lag features, rolling features, temporal features
+   - y = AQI_target
+   - Separate categorical (City) using encoding if needed
+
+4. Preprocessing:
+   - StandardScaler for numeric features
+   - OneHotEncoder for City (if used as feature)
+   - Save preprocessing pipeline
+
+5. Models to try:
+   A. Linear Regression (baseline)
+   B. Ridge Regression (alpha: 0.1, 1, 10)
+   C. Lasso Regression (alpha: 0.1, 1, 10)
+   D. Random Forest Regressor (n_estimators: 100, 200, 300; max_depth: 10, 20, None)
+   E. Gradient Boosting Regressor (n_estimators: 100, 200; learning_rate: 0.01, 0.1; max_depth: 5, 10)
+   F. XGBoost Regressor (n_estimators: 100, 200, 300; learning_rate: 0.01, 0.05, 0.1; max_depth: 5, 7, 10)
+   G. LightGBM Regressor (n_estimators: 100, 200; learning_rate: 0.01, 0.1; num_leaves: 31, 50)
+   H. Support Vector Regression (kernel: rbf, poly; C: 1, 10, 100)
+   I. K-Nearest Neighbors (n_neighbors: 5, 10, 15, 20)
+   J. MLP Regressor (hidden_layers: (100,), (100,50), (200,100); activation: relu, tanh)
+
+6. Evaluation metrics:
+   - RMSE (Root Mean Squared Error)
+   - MAE (Mean Absolute Error)
+   - R² Score
+   - MAPE (Mean Absolute Percentage Error)
+
+7. Cross-validation:
+   - Use TimeSeriesSplit (n_splits=5)
+   - Report mean ± std for each metric
+
+8. Hyperparameter tuning:
+   - Use GridSearchCV or RandomizedSearchCV
+   - For top 3 models based on initial results
+
+9. Create comparison table:
+   Columns: Model_Name, Train_RMSE, Test_RMSE, Train_MAE, Test_MAE, Train_R2, Test_R2, CV_Score_Mean, CV_Score_Std, Training_Time
+   
+10. Select best model:
+    - Primarily based on Test_RMSE and Test_R2
+    - Consider overfitting (train-test gap)
+    - Consider training time for production
+
+11. Save best model:
+    - Save as model1_best_aqi_forecast.pkl
+    - Save preprocessing pipeline as model1_preprocessor.pkl
+    - Save feature names as model1_features.pkl
+
+12. Generate predictions:
+    - Predict on test set
+    - Save predictions as model1_predictions.csv (Date, City, Actual_AQI, Predicted_AQI)
+
+13. Create visualizations:
+    - Actual vs Predicted scatter plot
+    - Residual plot
+    - Time series plot (actual vs predicted over time)
+    - Feature importance (if applicable)
+
+14. Print summary:
+    - Best model name and hyperparameters
+    - Final test metrics
+    - Top 10 most important features
+"""
 ```
+
+### Step 2.2: Build Model 2 - Severe Day Prediction
+
+```python
+"""
+File: model2_severe_day.py
+
+Steps:
+
+1. Load model2_severe_day.csv
+
+2. Check class distribution:
+   - Count is_severe_tomorrow = 0 vs 1
+   - Calculate class imbalance ratio
+   - Print statistics
+
+3. Train-test split:
+   - Last 20% as test set (chronological)
+   - First 80% as training set
+   - Stratify by is_severe_tomorrow if possible
+
+4. Feature selection:
+   - X = all features (lags, rolling stats, temporal, change features)
+   - y = is_severe_tomorrow
+   - Drop City, Date
+
+5. Preprocessing:
+   - StandardScaler for numeric features
+   - Save preprocessing pipeline
+
+6. Handle class imbalance (try multiple strategies):
+   - Strategy A: No balancing (baseline)
+   - Strategy B: SMOTE (Synthetic Minority Over-sampling)
+   - Strategy C: Class weights (balanced)
+   - Strategy D: Random undersampling of majority class
+   
+   Note: Try each strategy with each model
+
+7. Models to try:
+   A. Logistic Regression (C: 0.1, 1, 10; class_weight: balanced)
+   B. Random Forest Classifier (n_estimators: 100, 200, 300; max_depth: 10, 20, None; class_weight: balanced)
+   C. Gradient Boosting Classifier (n_estimators: 100, 200; learning_rate: 0.01, 0.1; max_depth: 5, 10)
+   D. XGBoost Classifier (n_estimators: 100, 200, 300; learning_rate: 0.01, 0.05, 0.1; scale_pos_weight: auto)
+   E. LightGBM Classifier (n_estimators: 100, 200; learning_rate: 0.01, 0.1; is_unbalance: True)
+   F. Support Vector Classifier (kernel: rbf, poly; C: 1, 10; class_weight: balanced)
+   G. K-Nearest Neighbors (n_neighbors: 5, 10, 15, 20; weights: uniform, distance)
+   H. MLP Classifier (hidden_layers: (100,), (100,50); activation: relu)
+   I. Decision Tree Classifier (max_depth: 10, 20, None; class_weight: balanced)
+   J. AdaBoost Classifier (n_estimators: 50, 100, 200)
+
+8. Evaluation metrics:
+   - Accuracy
+   - Precision (for severe class)
+   - Recall (for severe class) - MOST IMPORTANT (don't miss severe days)
+   - F1-Score
+   - ROC-AUC
+   - Confusion Matrix
+   - Classification Report
+
+9. Cross-validation:
+   - StratifiedKFold (n_splits=5)
+   - Report mean ± std for each metric
+
+10. Threshold optimization:
+    - For best model, tune classification threshold
+    - Optimize for high recall (catch severe days)
+    - Balance with precision to avoid too many false alarms
+
+11. Create comparison table:
+    Columns: Model_Name, Imbalance_Strategy, Train_Accuracy, Test_Accuracy, Precision, Recall, F1_Score, ROC_AUC, CV_Score_Mean, CV_Score_Std
+
+12. Select best model:
+    - Prioritize Recall > 0.85 (critical for public health)
+    - Then optimize F1-Score
+    - Consider false positive rate (public trust)
+
+13. Save best model:
+    - Save as model2_best_severe_day.pkl
+    - Save preprocessing pipeline as model2_preprocessor.pkl
+    - Save optimal threshold as model2_threshold.pkl
+
+14. Generate predictions:
+    - Predict on test set with probabilities
+    - Apply optimal threshold
+    - Save as model2_predictions.csv (Date, City, Actual, Predicted, Probability)
+
+15. Create visualizations:
+    - Confusion matrix heatmap
+    - ROC curve
+    - Precision-Recall curve
+    - Feature importance
+    - Threshold vs metrics plot
+
+16. Print summary:
+    - Best model name and hyperparameters
+    - Confusion matrix
+    - Classification report
+    - Optimal threshold
+    - Expected false alarm rate
+"""
+```
+
+### Step 2.3: Build Model 3 - Disease Burden Estimation
+
+```python
+"""
+File: model3_disease_burden.py
+
+Steps:
+
+1. Load model3_disease_burden.csv
+
+2. Analyze data:
+   - Check number of states/regions available
+   - Check years covered
+   - Examine target variable distributions
+   - Check for missing values
+
+3. Multiple target strategy:
+   - Build separate models for each target:
+     * Cardiovascular_per_100k
+     * Respiratory_per_100k
+     * All_Key_Diseases_per_100k
+   - Also try MultiOutputRegressor for joint prediction
+
+4. Train-test split:
+   - Random split (70-30) since not purely time series
+   - Or: use 2015-2018 for training, 2019 for testing
+   - Stratify by State if needed
+
+5. Feature selection:
+   - X = all pollutant features + interaction terms + AQI statistics
+   - y = each target separately
+   - Apply feature selection:
+     * Correlation analysis (remove features with |corr| < 0.1 with target)
+     * Mutual information
+     * SelectKBest (keep top 20-30 features)
+
+6. Preprocessing:
+   - StandardScaler for numeric features
+   - Handle outliers (optional: winsorization at 1st and 99th percentile)
+
+7. Models to try (for EACH target):
+   A. Linear Regression (baseline)
+   B. Ridge Regression (alpha: 0.1, 1, 10, 100)
+   C. Lasso Regression (alpha: 0.1, 1, 10, 100)
+   D. ElasticNet (alpha: 0.1, 1, 10; l1_ratio: 0.3, 0.5, 0.7)
+   E. Random Forest Regressor (n_estimators: 100, 200; max_depth: 10, 20; min_samples_leaf: 5, 10)
+   F. Gradient Boosting Regressor (n_estimators: 100, 200; learning_rate: 0.01, 0.05, 0.1; max_depth: 3, 5)
+   G. XGBoost Regressor (n_estimators: 100, 200; learning_rate: 0.01, 0.05; max_depth: 3, 5, 7)
+   H. LightGBM Regressor (n_estimators: 100, 200; learning_rate: 0.01, 0.05; num_leaves: 20, 31)
+   I. Support Vector Regression (kernel: rbf, linear; C: 1, 10; epsilon: 0.1, 0.2)
+   J. K-Nearest Neighbors (n_neighbors: 3, 5, 7, 10)
+
+8. Evaluation metrics:
+   - RMSE
+   - MAE
+   - R² Score
+   - MAPE
+   - Max Error (identify worst predictions)
+
+9. Cross-validation:
+   - KFold (n_splits=5)
+   - Report mean ± std for each metric
+
+10. Transfer learning approach:
+    - Train on global 2019 data (if available in dataset)
+    - Fine-tune on India 2015-2019 data
+    - Compare with direct training on India data only
+
+11. Ensemble methods:
+    - Create ensemble of top 3 models
+    - Weighted average based on validation performance
+    - Stacking regressor
+
+12. Create comparison table for EACH target:
+    Columns: Model_Name, Target, Train_RMSE, Test_RMSE, Train_MAE, Test_MAE, Train_R2, Test_R2, CV_Score_Mean, CV_Score_Std
+
+13. Select best model for each target:
+    - Primarily based on Test_R2 and Test_RMSE
+    - Check if same model works best for all targets
+
+14. Save best models:
+    - model3_best_cardiovascular.pkl
+    - model3_best_respiratory.pkl
+    - model3_best_all_diseases.pkl
+    - model3_preprocessor.pkl
+
+15. Generate predictions:
+    - Predict on test set for all targets
+    - Save as model3_predictions.csv (State, Year, Actual_Cardio, Pred_Cardio, Actual_Resp, Pred_Resp, ...)
+
+16. Create visualizations:
+    - Actual vs Predicted for each target
+    - Residual plots
+    - Feature importance for each model
+    - Pollutant contribution analysis
+
+17. Validation using known correlations:
+    - Check if predicted correlations match EDA findings:
+      * SO2 → Respiratory should be strong positive
+      * SO2 → Cardiovascular should be strong positive
+    - Compare correlation of predictions vs actual
+
+18. Print summary:
+    - Best model for each target
+    - Key pollutants driving each disease type
+    - Expected error margins
+    - States with highest predicted burden
+"""
+```
+
+### Step 2.4: Build Model 4 - Multi-Pollutant Synergy
+
+```python
+"""
+File: model4_pollutant_synergy.py
+
+Steps:
+
+1. Load model4_pollutant_synergy.csv
+
+2. Data split strategy:
+   - Global 2019 data → primary training set
+   - India 2015-2019 → validation set (separate evaluation)
+   - Within global: 80-20 train-test split
+   - Keep India separate for domain adaptation testing
+
+3. Feature analysis:
+   - Correlation matrix of all interaction features
+   - Remove highly correlated pairs (|corr| > 0.95)
+   - Keep most interpretable features when removing
+
+4. Feature selection:
+   - Use recursive feature elimination (RFE)
+   - Select top 30-40 features
+   - Ensure at least 5 interaction terms included
+   - Include key base pollutants: PM2.5, NO2, SO2
+
+5. Preprocessing:
+   - RobustScaler (better for outliers than StandardScaler)
+   - Optional: QuantileTransformer for heavy-tailed distributions
+
+6. Multiple targets:
+   - Cardiovascular_deaths_per_100k
+   - Respiratory_deaths_per_100k  
+   - Combined_disease_risk_score
+   - Build models for each separately
+
+7. Models to try (for EACH target):
+   A. Linear Regression (baseline for interpretability)
+   B. Ridge Regression (alpha: 0.01, 0.1, 1, 10)
+   C. Lasso Regression (alpha: 0.01, 0.1, 1, 10)
+   D. ElasticNet (alpha: 0.1, 1; l1_ratio: 0.3, 0.5, 0.7)
+   E. Polynomial Regression (degree: 2) with Ridge
+   F. Random Forest Regressor (n_estimators: 200, 300; max_depth: 15, 20; max_features: sqrt, log2)
+   G. Gradient Boosting Regressor (n_estimators: 200, 300; learning_rate: 0.01, 0.05; max_depth: 4, 6; subsample: 0.8)
+   H. XGBoost Regressor (n_estimators: 200, 300; learning_rate: 0.01, 0.05; max_depth: 4, 6; colsample_bytree: 0.8)
+   I. LightGBM Regressor (n_estimators: 200, 300; learning_rate: 0.01, 0.05; num_leaves: 31, 50; feature_fraction: 0.8)
+   J. CatBoost Regressor (iterations: 200, 300; learning_rate: 0.01, 0.05; depth: 4, 6)
+   K. Neural Network - MLP (hidden_layers: (128,64), (200,100,50); activation: relu; early_stopping)
+   L. Neural Network - Custom architecture with attention on interaction features
+
+8. Interaction-specific models:
+   - Multiplicative model: y = β₀ × PM2.5^β₁ × NO2^β₂ × SO2^β₃ (log-transform)
+   - GAM (Generalized Additive Model) for non-linear interactions
+   - Decision Tree with max_depth=5 for interpretable interactions
+
+9. Evaluation metrics:
+   - RMSE
+   - MAE  
+   - R² Score
+   - MAPE
+   - Explained Variance Score
+   - Feature interaction strength score (custom metric)
+
+10. Cross-validation:
+    - KFold (n_splits=5) on global training data
+    - Separate evaluation on India data (domain shift analysis)
+
+11. Interaction importance analysis:
+    - For best tree-based model:
+      * Extract feature importance
+      * Identify top interaction terms
+    - For linear models:
+      * Examine coefficients of interaction terms
+    - SHAP analysis:
+      * Calculate SHAP interaction values
+      * Identify synergistic vs antagonistic interactions
+
+12. Create comparison table:
+    Columns: Model_Name, Target, Test_RMSE_Global, Test_R2_Global, Test_RMSE_India, Test_R2_India, Top_Interaction_Features, CV_Score_Mean, CV_Score_Std
+
+13. Domain adaptation:
+    - Check if global model performs well on India
+    - If gap exists, try:
+      * Fine-tuning on small India sample
+      * Domain adversarial training
+      * Transfer learning with frozen layers
+
+14. Select best model for each target:
+    - Best global performance
+    - Acceptable India performance (R² > 0.5)
+    - Interpretable interaction terms
+
+15. Save best models:
+    - model4_best_cardiovascular.pkl
+    - model4_best_respiratory.pkl  
+    - model4_best_combined_risk.pkl
+    - model4_preprocessor.pkl
+    - model4_feature_selector.pkl
+
+16. Generate predictions:
+    - Predict on global test set
+    - Predict on India data (all years)
+    - Save as model4_predictions.csv (Country/State, Year, Actual, Predicted, is_india flag)
+
+17. Create visualizations:
+    - Actual vs Predicted (separate for global and India)
+    - Residual analysis
+    - Top 10 feature importances
+    - SHAP summary plot
+    - Interaction effect plots (e.g., PM2.5 × SO2 heatmap)
+    - Partial dependence plots for key interactions
+
+18. Synergy analysis:
+    - Identify pollutant pairs with strongest synergy:
+      * Synergy score = coefficient(A×B) / (coefficient(A) + coefficient(B))
+    - Rank interactions by health impact
+    - Create synergy matrix heatmap
+
+19. Validate against EDA correlations:
+    - Check if model predictions preserve correlation patterns:
+      * Global: weak correlations (0.1-0.25) should be matched
+      * India: strong correlations (0.75-0.98) should be matched
+    - Correlation of predicted vs actual should be high
+
+20. Print summary:
+    - Best model for each target
+    - Top 5 most important pollutant interactions
+    - Synergy effects found (e.g., "PM2.5 + SO2 amplifies cardiovascular risk by 1.4x")
+    - Model performance on global vs India data
+    - Recommendations for pollutant control priorities
+"""
+```
+
+---
+
+## PHASE 3: CODE STRUCTURE
+
+### Complete Pipeline (Single Python File)
+
+```python
+"""
+File: air_quality_health_models.py
+
+This file contains the complete pipeline for all 4 models.
+Each model has its own section with data prep and model building.
+
+Usage:
+    python air_quality_health_models.py --model all
+    python air_quality_health_models.py --model 1
+    python air_quality_health_models.py --model 2
+    python air_quality_health_models.py --model 3
+    python air_quality_health_models.py --model 4
+
+Structure:
+1. Imports and setup
+2. Data preparation functions (one per model)
+3. Model building functions (one per model)
+4. Evaluation and comparison functions
+5. Saving functions
+6. Main execution
+"""
+
+# Required imports
+import pandas as pd
+import numpy as np
+import pickle
+import warnings
+from datetime import datetime
+import argparse
+
+# ML imports
+from sklearn.model_selection import train_test_split, TimeSeriesSplit, StratifiedKFold, KFold, GridSearchCV, RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler, RobustScaler, OneHotEncoder, QuantileTransformer
+from sklearn.feature_selection import SelectKBest, f_regression, mutual_info_regression, RFE
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, mean_absolute_percentage_error
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, LogisticRegression
+from sklearn.svm import SVR, SVC
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
+from sklearn.neural_network import MLPRegressor, MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import RandomUnderSampler
+import xgboost as xgb
+import lightgbm as lgb
+
+# Visualization
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+warnings.filterwarnings('ignore')
+
+# ============================================================================
+# SECTION 1: DATA PREPARATION FUNCTIONS
+# ============================================================================
+
+def prepare_model1_data():
+    """Prepare AQI forecasting dataset"""
+    # Implementation as per Step 1.1
+    pass
+
+def prepare_model2_data():
+    """Prepare severe day prediction dataset"""
+    # Implementation as per Step 1.2
+    pass
+
+def prepare_model3_data():
+    """Prepare disease burden estimation dataset"""
+    # Implementation as per Step 1.3
+    pass
+
+def prepare_model4_data():
+    """Prepare multi-pollutant synergy dataset"""
+    # Implementation as per Step 1.4
+    pass
+
+# ============================================================================
+# SECTION 2: MODEL BUILDING FUNCTIONS
+# ============================================================================
+
+def build_model1():
+    """Build and evaluate AQI forecasting models"""
+    # Implementation as per Step 2.1
+    # Returns: best_model, comparison_df, predictions_df
+    pass
+
+def build_model2():
+    """Build and evaluate severe day prediction models"""
+    # Implementation as per Step 2.2
+    # Returns: best_model, comparison_df, predictions_df
+    pass
+
+def build_model3():
+    """Build and evaluate disease burden models"""
+    # Implementation as per Step 2.3
+    # Returns: best_models_dict, comparison_df, predictions_df
+    pass
+
+def build_model4():
+    """Build and evaluate multi-pollutant synergy models"""
+    # Implementation as per Step 2.4
+    # Returns: best_models_dict, comparison_df, predictions_df, synergy_analysis
+    pass
+
+# ============================================================================
+# SECTION 3: EVALUATION AND VISUALIZATION
+# ============================================================================
+
+def create_comparison_table(results_dict, model_name):
+    """Create formatted comparison table for all models"""
+    df = pd.DataFrame(results_dict)
+    df = df.sort_values('Test_R2', ascending=False)  # or appropriate metric
+    df.to_csv(f'{model_name}_comparison.csv', index=False)
+    print(f"\n{model_name} Comparison Table:")
+    print(df.to_string())
+    return df
+
+def plot_predictions(actual, predicted, model_name, target_name=''):
+    """Create actual vs predicted plots"""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+    
+    # Scatter plot
+    ax1.scatter(actual, predicted, alpha=0.5)
+    ax1.plot([actual.min(), actual.max()], [actual.min(), actual.max()], 'r--', lw=2)
+    ax1.set_xlabel('Actual')
+    ax1.set_ylabel('Predicted')
+    ax1.set_title(f'{model_name} - Actual vs Predicted {target_name}')
+    
+    # Residual plot
+    residuals = actual - predicted
+    ax2.scatter(predicted, residuals, alpha=0.5)
+    ax2.axhline(y=0, color='r', linestyle='--', lw=2)
+    ax2.set_xlabel('Predicted')
+    ax2.set_ylabel('Residuals')
+    ax2.set_title(f'{model_name} - Residual Plot {target_name}')
+    
+    plt.tight_layout()
+    plt.savefig(f'{model_name}_{target_name}_predictions.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+# ============================================================================
+# SECTION 4: SAVING FUNCTIONS
+# ============================================================================
+
+def save_model(model, filepath):
+    """Save model as pickle file"""
+    with open(filepath, 'wb') as f:
+        pickle.dump(model, f)
+    print(f"Model saved to {filepath}")
+
+def save_preprocessor(preprocessor, filepath):
+    """Save preprocessing pipeline"""
+    with open(filepath, 'wb') as f:
+        pickle.dump(preprocessor, f)
+    print(f"Preprocessor saved to {filepath}")
+
+# ============================================================================
+# SECTION 5: MAIN EXECUTION
+# ============================================================================
+
+def main(model_number):
+    """
+    Main execution function
+    
+    Args:
+        model_number: 'all' or '1', '2', '3', '4'
+    """
+    
+    print("="*80)
+    print("AIR QUALITY & HEALTH PREDICTION MODELS")
+    print("="*80)
+    
+    if model_number in ['all', '1']:
+        print("\n" + "="*80)
+        print("MODEL 1: AQI FORECASTING (7-30 DAYS AHEAD)")
+        print("="*80)
+        prepare_model1_data()
+        best_model, comparison_df, predictions_df = build_model1()
+        save_model(best_model, 'model1_best_aqi_forecast.pkl')
+        
+    if model_number in ['all', '2']:
+        print("\n" + "="*80)
+        print("MODEL 2: SEVERE DAY PREDICTION")
+        print("="*80)
+        prepare_model2_data()
+        best_model, comparison_df, predictions_df = build_model2()
+        save_model(best_model, 'model2_best_severe_day.pkl')
+        
+    if model_number in ['all', '3']:
+        print("\n" + "="*80)
+        print("MODEL 3: DISEASE BURDEN ESTIMATION")
+        print("="*80)
+        prepare_model3_data()
+        best_models, comparison_df, predictions_df = build_model3()
+        for target, model in best_models.items():
+            save_model(model, f'model3_best_{target}.pkl')
+        
+    if model_number in ['all', '4']:
+        print("\n" + "="*80)
+        print("MODEL 4: MULTI-POLLUTANT SYNERGY")
+        print("="*80)
+        prepare_model4_data()
+        best_models, comparison_df, predictions_df, synergy = build_model4()
+        for target, model in best_models.items():
+            save_model(model, f'model4_best_{target}.pkl')
+    
+    print("\n" + "="*80)
+    print("ALL MODELS COMPLETED SUCCESSFULLY")
+    print("="*80)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Build air quality and health prediction models')
+    parser.add_argument('--model', type=str, default='all', 
+                       choices=['all', '1', '2', '3', '4'],
+                       help='Which model to build: all, 1, 2, 3, or 4')
+    args = parser.parse_args()
+    
+    main(args.model)
+```
+
+---
+
+## OUTPUT FILES
+
+### For Each Model:
+
+**Model 1 - AQI Forecasting**
+- `model1_aqi_forecast.csv` - prepared dataset
+- `model1_best_aqi_forecast.pkl` - best model
+- `model1_preprocessor.pkl` - preprocessing pipeline
+- `model1_features.pkl` - feature names
+- `model1_comparison.csv` - all models comparison table
+- `model1_predictions.csv` - predictions on test set
+- `model1_predictions.png` - visualization
+
+**Model 2 - Severe Day Prediction**
+- `model2_severe_day.csv` - prepared dataset
+- `model2_best_severe_day.pkl` - best model
+- `model2_preprocessor.pkl` - preprocessing pipeline
+- `model2_threshold.pkl` - optimal classification threshold
+- `model2_comparison.csv` - all models comparison table
+- `model2_predictions.csv` - predictions on test set
+- `model2_confusion_matrix.png` - confusion matrix
+- `model2_roc_curve.png` - ROC curve
+
+**Model 3 - Disease Burden**
+- `model3_disease_burden.csv` - prepared dataset
+- `model3_best_cardiovascular.pkl` - best model for cardiovascular
+- `model3_best_respiratory.pkl` - best model for respiratory
+- `model3_best_all_diseases.pkl` - best model for all diseases
+- `model3_preprocessor.pkl` - preprocessing pipeline
+- `model3_comparison.csv` - all models comparison table (all targets)
+- `model3_predictions.csv` - predictions on test set
+- `model3_cardiovascular_predictions.png` - visualizations for each target
+- `model3_respiratory_predictions.png`
+- `model3_all_diseases_predictions.png`
+
+**Model 4 - Pollutant Synergy**
+- `model4_pollutant_synergy.csv` - prepared dataset
+- `model4_best_cardiovascular.pkl` - best model for cardiovascular
+- `model4_best_respiratory.pkl` - best model for respiratory
+- `model4_best_combined_risk.pkl` - best model for combined risk
+- `model4_preprocessor.pkl` - preprocessing pipeline
+- `model4_feature_selector.pkl` - feature selection pipeline
+- `model4_comparison.csv` - all models comparison table
+- `model4_predictions.csv` - predictions on test set
+- `model4_synergy_analysis.csv` - pollutant interaction analysis
+- `model4_synergy_matrix.png` - interaction heatmap
+- `model4_feature_importance.png` - feature importance plot
 
 ---
 
 ## SUCCESS CRITERIA
 
-The project is successful if:
-1. ✅ Complete EDA reveals clear patterns and insights
-2. ✅ India vs Global comparison shows quantified differences
-3. ✅ At least 5 different ML models trained and compared
-4. ✅ Best model achieves R² > 0.70 on test set
-5. ✅ Neural network matches or exceeds traditional ML performance
-6. ✅ City-level predictions generated for all 26 cities
-7. ✅ Clear, actionable recommendations provided
-8. ✅ Complete documentation and reproducible code
-9. ✅ Alignment with SDG goals clearly demonstrated
-10. ✅ Model ready for deployment/further development
+1. ✅ All 4 datasets prepared successfully with no errors
+2. ✅ Each model tests at least 8-10 different algorithms
+3. ✅ Comparison tables generated with all relevant metrics
+4. ✅ Best model selected based on appropriate criteria for each task
+5. ✅ All models saved as .pkl files
+6. ✅ Predictions generated and saved as CSV
+7. ✅ Visualizations created for model evaluation
+8. ✅ Code runs end-to-end without manual intervention
+9. ✅ Model 1: Test R² > 0.75 for AQI forecasting
+10. ✅ Model 2: Recall > 0.85 for severe day detection
+11. ✅ Model 3: Test R² > 0.60 for disease burden estimation
+12. ✅ Model 4: Identifies at least 3 significant pollutant synergies
 
 ---
 
