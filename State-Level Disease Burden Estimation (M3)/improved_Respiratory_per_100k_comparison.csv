@@ -1,0 +1,87 @@
+Model_Name,Train_RMSE,Test_RMSE,Train_MAE,Test_MAE,Train_R2,Test_R2,Train_MAPE,Test_MAPE,R2_Gap,Estimator,Test_Preds
+Lasso_Strong,13.384969439403125,10.028355010814911,7.701743320859352,6.341120045679607,0.989232438792571,0.9915903909889706,0.08148015897765129,0.11703970882664005,-0.002357952196399671,"Pipeline(steps=[('preprocess',
+                 ColumnTransformer(transformers=[('numeric',
+                                                  Pipeline(steps=[('imputer',
+                                                                   SimpleImputer(strategy='median')),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['mean_AQI', 'std_AQI', 'CO',
+                                                   'max_AQI', 'pct_severe_days',
+                                                   'pct_very_poor_days', 'NO2',
+                                                   'SO2', 'PM2.5', 'NOx',
+                                                   'PM10', 'O3'])])),
+                ('model', Lasso(alpha=5.0, max_iter=5000))])","[546.3362788  170.07023159  50.97296309 293.56997318  65.05554479
+ 118.96601743 -12.19493242 177.73963034  87.60441083 239.80162344
+ 128.57426043  84.38312959 101.16778895  52.45421868  86.28118014
+ 163.72825595  63.94354422 129.15177839 219.44438128  80.54494148
+ 188.1811267   54.55632094  67.57401334 106.83210835]"
+RF_Shallow,31.721841288451028,12.45442140090181,9.302298781209666,8.257427068686077,0.9395217303376905,0.987029296938172,0.04886808871663089,0.12177189334364065,-0.0475075666004815,"Pipeline(steps=[('preprocess',
+                 ColumnTransformer(transformers=[('numeric',
+                                                  Pipeline(steps=[('imputer',
+                                                                   SimpleImputer(strategy='median')),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['mean_AQI', 'std_AQI', 'CO',
+                                                   'max_AQI', 'pct_severe_days',
+                                                   'pct_very_poor_days', 'NO2',
+                                                   'SO2', 'PM2.5', 'NOx',
+                                                   'PM10', 'O3'])])),
+                ('model',
+                 RandomForestRegressor(max_depth=4, min_samples_leaf=2,
+                                       n_estimators=80, n_jobs=-1,
+                                       random_state=42))])","[530.96364931 172.25631575  54.60409812 258.3284259   57.71093627
+ 140.82158931  35.55250149 174.58841121  94.84938462 252.65596512
+ 118.53772902  82.02718307  91.51451128  51.64436858 118.01293319
+ 178.54847407  61.96260085 125.52616838 239.85926632  78.79927967
+ 181.8073498   52.95299884  61.1334411   96.2228821 ]"
+GB_Simple,4.623850164562172,21.84927801781973,3.050630938945876,10.40946423425745,0.9987150385873622,0.9600799950532617,0.04300330074376196,0.12192608967312608,0.03863504353410052,"Pipeline(steps=[('preprocess',
+                 ColumnTransformer(transformers=[('numeric',
+                                                  Pipeline(steps=[('imputer',
+                                                                   SimpleImputer(strategy='median')),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['mean_AQI', 'std_AQI', 'CO',
+                                                   'max_AQI', 'pct_severe_days',
+                                                   'pct_very_poor_days', 'NO2',
+                                                   'SO2', 'PM2.5', 'NOx',
+                                                   'PM10', 'O3'])])),
+                ('model',
+                 GradientBoostingRegressor(learning_rate=0.05, max_depth=2,
+                                           n_estimators=80, random_state=42,
+                                           subsample=0.8))])","[656.41529019 168.01736442  57.51934365 233.87926894  64.22295469
+ 123.18235725  39.02971564 168.01736442  82.32533254 238.12488831
+ 113.05521974  82.03281047  86.45953264  53.07598821  98.25149906
+ 166.81711602  66.28346121 110.70646234 235.46591767  76.84322323
+ 177.43180124  57.51934365  66.28346121  93.74426713]"
+Ridge_Strong,23.04049643000438,25.25864554175761,16.078659306222523,18.59361288516898,0.96809444926393,0.9466497422886866,0.15724370451217462,0.2244665183531619,0.021444706975243366,"Pipeline(steps=[('preprocess',
+                 ColumnTransformer(transformers=[('numeric',
+                                                  Pipeline(steps=[('imputer',
+                                                                   SimpleImputer(strategy='median')),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['mean_AQI', 'std_AQI', 'CO',
+                                                   'max_AQI', 'pct_severe_days',
+                                                   'pct_very_poor_days', 'NO2',
+                                                   'SO2', 'PM2.5', 'NOx',
+                                                   'PM10', 'O3'])])),
+                ('model', Ridge(alpha=20.0))])","[568.5775389  161.51891601  63.74831405 291.57592797  67.25288987
+ 132.51797195  -2.36768499 193.64445144 121.08105213 234.88188198
+ 140.78775474  58.80891148  99.15671346  51.80046906 165.77560729
+ 161.05178624  83.89607094  80.34421459 189.56897879  60.33035236
+ 185.33299138  44.72905833  83.22680084  90.45328072]"
+ElasticNet_Strong,67.13515403736757,48.5179742019948,38.391540283748526,32.870903556477096,0.7291164946846835,0.8031562077470392,0.4056395537027877,0.37417211020199564,-0.07403971306235568,"Pipeline(steps=[('preprocess',
+                 ColumnTransformer(transformers=[('numeric',
+                                                  Pipeline(steps=[('imputer',
+                                                                   SimpleImputer(strategy='median')),
+                                                                  ('scaler',
+                                                                   StandardScaler())]),
+                                                  ['mean_AQI', 'std_AQI', 'CO',
+                                                   'max_AQI', 'pct_severe_days',
+                                                   'pct_very_poor_days', 'NO2',
+                                                   'SO2', 'PM2.5', 'NOx',
+                                                   'PM10', 'O3'])])),
+                ('model', ElasticNet(alpha=10.0, max_iter=5000))])","[370.20042981 159.01957069  87.76472006 213.58452047  97.20177465
+ 138.989371    45.43511689 167.66831471 128.84308557 214.52436877
+ 138.17285506  89.31917695 106.10988797  83.31117118 147.24710821
+ 141.77359409 105.49284341 113.69871975 185.93787607  87.82311418
+ 176.64987462  81.2018414  101.74501674 115.24141853]"

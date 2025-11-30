@@ -1,0 +1,13 @@
+feature,importance
+numeric__mean_AQI,11.636217591678422
+numeric__CO,10.699726901113076
+numeric__std_AQI,10.098123176050773
+numeric__max_AQI,9.29107355965838
+numeric__SO2,8.356068927195707
+numeric__pct_severe_days,7.779791506873176
+numeric__NO2,7.09514563464867
+numeric__pct_very_poor_days,6.113848455377066
+numeric__PM2.5,5.208970610175742
+numeric__NOx,3.8516230527150594
+numeric__PM10,0.9775429045250864
+numeric__O3,0.012363365282778179
